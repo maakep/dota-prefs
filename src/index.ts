@@ -1,6 +1,8 @@
 import express from "express";
 import fs from "fs";
 import bodyParser from "body-parser";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./docs";
 
 const app = express();
 const PORT = 3000;
@@ -21,30 +23,80 @@ generateFileOrUpdateCache();
 app.use(bodyParser.json());
 
 /**
- *
- * GET
- *
+ * @swagger
+ * /:
+ *   get:
+ *     summary: All users & roles
+ *     description: Retrieve a list of all users and their roles.
+ *     responses:
+ *       200:
+ *         description: All users.
  */
-
 app.get("/", (req, res) => {
   res.json(preferenceCache);
 });
 
+/**
+ * @swagger
+ * /healthcheck:
+ *   get:
+ *     summary: Server healthcheck
+ *     description: Quickly verify that the server is alive without invocing any logic.
+ *     responses:
+ *       200:
+ *         description: Living message
+ */
 app.get("/healthcheck", (req, res) => {
-  res.status(200).send("Totally alive");
+  res.status(200).send("Totally alive " + Math.random() * 100);
 });
 
+/**
+ * @swagger
+ * /role/{user}:
+ *   get:
+ *     summary: Get user & roles
+ *     description: Retrieve a specific user and their roles.
+ *     parameters:
+ *       - in: path
+ *         name: user
+ *         required: true
+ *         description: Name of user
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: A user's roles.
+ */
 app.get("/role/:user", (req, res) => {
   const roles = preferenceCache[req.params.user?.toLowerCase()];
   res.status(roles ? 200 : 404).json(roles);
 });
 
-/**
- *
- * POST
- *
- */
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+/**
+ * @swagger
+ * /roles:
+ *   post:
+ *     summary: Generate preferred roles in random order
+ *     description: API main functionality, receives users and shuffles them and then gives each player their most preferred & available role. (cannot be tested through swagger)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               users:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: All users of the party.
+ *                 example: ['Loda', 's4', 'AdmiralBulldog', 'EGM', 'Akke']
+ *     responses:
+ *       200:
+ *         description: A list of users.
+ */
 app.post("/roles", (req, res) => {
   const { users } = req.body;
   const randomUsers = shuffleArray(users);
@@ -73,6 +125,35 @@ app.post("/roles", (req, res) => {
 });
 
 const ACCEPTED_ROLES = ["fill", "1", "2", "3", "4", "5"];
+/**
+ * @swagger
+ * /role:
+ *   post:
+ *     summary: Create or overwrite roles for user
+ *     description: Accepted roles are "fill", "1", "2", "3", "4", "5"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               user:
+ *                 type: string
+ *                 description: User
+ *                 example: Nisha
+ *               roles:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: This user's preferred roles
+ *                 example: ['fill', '2', '1', '3', '4', '5']
+ *     responses:
+ *       200:
+ *         description: A verification message
+ *       400:
+ *         description: Error message, incorrect role string
+ */
 app.post("/role", (req, res) => {
   const { user, roles } = req.body;
 
@@ -95,11 +176,24 @@ app.post("/role", (req, res) => {
 });
 
 /**
- *
- * DELETE
- *
+ * @swagger
+ * /{user}:
+ *   delete:
+ *     summary: Delete entry
+ *     description: Delete by user's name
+ *     parameters:
+ *       - in: path
+ *         name: user
+ *         required: true
+ *         description: Name of user
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Success.
+ *       404:
+ *         description: User not found
  */
-
 app.delete("/:user", (req, res) => {
   const foundUser =
     Object.keys(preferenceCache).indexOf(req.params.user?.toLowerCase()) !=
