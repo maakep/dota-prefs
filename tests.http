@@ -1,0 +1,30 @@
+GET http://localhost:3000/healthcheck
+Content-Type: application/json
+
+{
+  
+}
+
+
+###
+
+POST http://localhost:3000/roles
+Content-Type: application/json
+
+{
+  "users": ["maakep", "mid_or_feed", "noobslayer", "godgamer", "dragonperson_xx"]
+}
+
+
+###
+
+POST http://localhost:3000/role
+Content-Type: application/json
+
+{
+  "user": "godgamer",
+  "roles": [5, 4]
+}
+
+
+###
