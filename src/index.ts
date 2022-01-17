@@ -79,7 +79,7 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
  * /roles:
  *   post:
  *     summary: Generate preferred roles in random order
- *     description: API main functionality, receives users and shuffles them and then gives each player their most preferred & available role. (cannot be tested through swagger)
+ *     description: API main functionality, receives users and shuffles them and then gives each player their most preferred & available role.
  *     requestBody:
  *       required: true
  *       content:
@@ -87,6 +87,10 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
  *           schema:
  *             type: object
  *             properties:
+ *               json:
+ *                 type: boolean
+ *                 description: If you don't want a stringified version
+ *                 example: true
  *               users:
  *                 type: array
  *                 items:
@@ -95,10 +99,10 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
  *                 example: ['Loda', 's4', 'AdmiralBulldog', 'EGM', 'Akke']
  *     responses:
  *       200:
- *         description: A list of users.
+ *         description: A string or list of users, depending on the `json` body parameter.
  */
 app.post("/roles", (req, res) => {
-  const { users } = req.body;
+  const { users, json } = req.body;
   const randomUsers = shuffleArray(users);
   const num = randomUsers.length;
   const prefs = { ...preferenceCache };
@@ -121,7 +125,40 @@ app.post("/roles", (req, res) => {
     calculatedRoles.push({ user: user, role: parseInt(pref) });
   }
 
-  res.json(calculatedRoles);
+  if (json) {
+    res.json(calculatedRoles);
+  } else {
+    res.send(calculatedRoles.map((x) => `${x.user} (${x.role})`).join(" > "));
+  }
+});
+
+/**
+ * @swagger
+ * /onlyshuffle:
+ *   post:
+ *     summary: Get users in random order
+ *     description: No preferred roles, just a shuffled into a string separated by >
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               users:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: All users of the party.
+ *                 example: ['Loda', 's4', 'AdmiralBulldog', 'EGM', 'Akke']
+ *     responses:
+ *       200:
+ *         description: A list of users.
+ */
+app.post("/onlyshuffle", (req, res) => {
+  const { users } = req.body;
+  const randomUsers = shuffleArray(users);
+  res.send(randomUsers.join(" > "));
 });
 
 const ACCEPTED_ROLES = ["fill", "1", "2", "3", "4", "5"];
