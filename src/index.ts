@@ -32,7 +32,7 @@ app.post("/roles", (req, res) => {
     const user = randomUsers.shift();
     if (user == undefined) break;
 
-    const userPrefs = [...(prefs[user] || []), "1", "2", "3", "4", "5"];
+    const userPrefs = [...(prefs[user] || []), "5", "4", "3", "2", "1"];
 
     const pref = findBestAvailablePreference(calculatedRoles, userPrefs);
     if (pref == "fill") {
@@ -51,9 +51,24 @@ app.get("/", (req, res) => {
   res.json(preferenceCache);
 });
 
+const ACCEPTED_ROLES = ["fill", "1", "2", "3", "4", "5"];
 app.post("/role", (req, res) => {
   const { user, roles } = req.body;
-  preferenceCache[user] = roles;
+
+  const validation = roles.reduce((a: boolean, c: any) => {
+    return a && ACCEPTED_ROLES.includes(c);
+  }, true);
+
+  if (!validation) {
+    return res
+      .status(400)
+      .send(
+        "Request contained role other than accepted: " +
+          ACCEPTED_ROLES.join(", ")
+      );
+  }
+
+  preferenceCache[user.toLowerCase()] = roles;
   updateFile();
   res.status(200).send("Role added");
 });
@@ -63,7 +78,7 @@ app.get("/healthcheck", (req, res) => {
 });
 
 app.get("/role/:user", (req, res) => {
-  const roles = preferenceCache[req.params.user];
+  const roles = preferenceCache[req.params.user?.toLowerCase()];
   res.status(roles ? 200 : 404).json(roles);
 });
 
