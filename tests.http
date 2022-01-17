@@ -22,3 +22,9 @@ Content-Type: application/json
 
 
 ###
+
+DELETE http://localhost:3000/baadep
+Content-Type: application/json
+
+
+###

@@ -20,6 +20,31 @@ generateFileOrUpdateCache();
 
 app.use(bodyParser.json());
 
+/**
+ *
+ * GET
+ *
+ */
+
+app.get("/", (req, res) => {
+  res.json(preferenceCache);
+});
+
+app.get("/healthcheck", (req, res) => {
+  res.status(200).send("Totally alive");
+});
+
+app.get("/role/:user", (req, res) => {
+  const roles = preferenceCache[req.params.user?.toLowerCase()];
+  res.status(roles ? 200 : 404).json(roles);
+});
+
+/**
+ *
+ * POST
+ *
+ */
+
 app.post("/roles", (req, res) => {
   const { users } = req.body;
   const randomUsers = shuffleArray(users);
@@ -47,10 +72,6 @@ app.post("/roles", (req, res) => {
   res.json(calculatedRoles);
 });
 
-app.get("/", (req, res) => {
-  res.json(preferenceCache);
-});
-
 const ACCEPTED_ROLES = ["fill", "1", "2", "3", "4", "5"];
 app.post("/role", (req, res) => {
   const { user, roles } = req.body;
@@ -73,13 +94,23 @@ app.post("/role", (req, res) => {
   res.status(200).send("Role added");
 });
 
-app.get("/healthcheck", (req, res) => {
-  res.status(200).send("Totally alive");
-});
+/**
+ *
+ * DELETE
+ *
+ */
 
-app.get("/role/:user", (req, res) => {
-  const roles = preferenceCache[req.params.user?.toLowerCase()];
-  res.status(roles ? 200 : 404).json(roles);
+app.delete("/:user", (req, res) => {
+  const foundUser =
+    Object.keys(preferenceCache).indexOf(req.params.user?.toLowerCase()) !=
+    undefined;
+
+  if (foundUser) {
+    delete preferenceCache[req.params.user?.toLowerCase()];
+    updateFile();
+  }
+
+  res.sendStatus(foundUser ? 200 : 404);
 });
 
 function findBestAvailablePreference(
