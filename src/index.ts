@@ -105,7 +105,12 @@ app.post("/roles", (req, res) => {
 
   const randomUsers = shuffleArray(users);
   const num = randomUsers.length;
+
+  // Deep copy
   const prefs = { ...preferenceCache };
+  Object.keys(prefs).forEach((key) => {
+    prefs[key] = [...prefs[key]];
+  });
 
   const calculatedRoles: UserRole[] = [];
 
