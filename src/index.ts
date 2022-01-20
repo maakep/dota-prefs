@@ -21,6 +21,7 @@ let preferenceCache: Users = null;
 generateFileOrUpdateCache();
 
 app.use(bodyParser.json());
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 /**
  * @swagger
@@ -72,8 +73,6 @@ app.get("/role/:user", (req, res) => {
   res.status(roles ? 200 : 404).json(roles);
 });
 
-app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
 /**
  * @swagger
  * /roles:
@@ -103,6 +102,7 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
  */
 app.post("/roles", (req, res) => {
   const { users, json } = req.body;
+
   const randomUsers = shuffleArray(users);
   const num = randomUsers.length;
   const prefs = { ...preferenceCache };
@@ -286,6 +286,10 @@ function shuffleArray(arr: string[]) {
   }
   return array;
 }
+
+app.use((error: any, req: any, res: any, next: any) => {
+  res.status(500).send(error.message);
+});
 
 app.listen(PORT, () => {
   console.log(`Server is running at ${PORT}`);
