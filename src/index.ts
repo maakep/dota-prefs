@@ -7,6 +7,7 @@ import { swaggerSpec } from "./docs";
 const app = express();
 const PORT = 3000;
 const FILE_PATH = "dota-prefs.json";
+const USER_ID_FILE_PATH = "id-to-user-mappings.json";
 
 type Users = {
   [key: string]: string[];
@@ -17,7 +18,11 @@ type UserRole = {
   role: number;
 };
 
+type UsernameToUserId = { username: string; userId: string };
+
 let preferenceCache: Users = null;
+let userIdMappingCache: UsernameToUserId[] = null;
+
 generateFileOrUpdateCache();
 
 app.use(bodyParser.json());
@@ -71,6 +76,32 @@ app.get("/healthcheck", (req, res) => {
 app.get("/role/:user", (req, res) => {
   const roles = preferenceCache[req.params.user?.toLowerCase()];
   res.status(roles ? 200 : 404).json(roles);
+});
+
+/**
+ * @swagger
+ * /{username}:
+ *   get:
+ *     summary: Get id of user
+ *     description: GET ID OF USER
+ *     parameters:
+ *       - in: path
+ *         name: username
+ *         required: true
+ *         description: Name of username
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Success {id: string user}.
+ *       404:
+ *         description: User not found
+ */
+app.get("/id/:username", (req, res) => {
+  const { username } = req.params;
+  const userId = userIdMappingCache.find((x) => x.username == username)?.userId;
+
+  res.json({ id: userId });
 });
 
 /**
@@ -197,7 +228,7 @@ const ACCEPTED_ROLES = ["fill", "1", "2", "3", "4", "5"];
  *         description: Error message, incorrect role string
  */
 app.post("/role", (req, res) => {
-  const { user, roles } = req.body;
+  const { user, roles, userId } = req.body;
 
   const validation = roles.reduce((a: boolean, c: any) => {
     return a && ACCEPTED_ROLES.includes(c);
@@ -210,6 +241,14 @@ app.post("/role", (req, res) => {
         "Request contained role other than accepted: " +
           ACCEPTED_ROLES.join(", ")
       );
+  }
+
+  const existingMapping = userIdMappingCache.find((x) => x.username == user);
+
+  if (existingMapping == undefined) {
+    userIdMappingCache.push({ userId: userId, username: user });
+  } else {
+    existingMapping.userId = userId;
   }
 
   preferenceCache[user.toLowerCase()] = roles;
@@ -268,6 +307,10 @@ function generateFileOrUpdateCache() {
     fs.writeFileSync(FILE_PATH, "{}");
   }
 
+  if (!fs.existsSync(USER_ID_FILE_PATH)) {
+    fs.writeFileSync(USER_ID_FILE_PATH, "[]");
+  }
+
   if (preferenceCache == null) {
     updateCache();
   }
@@ -275,12 +318,17 @@ function generateFileOrUpdateCache() {
 
 function updateCache() {
   const raw = fs.readFileSync(FILE_PATH, "utf-8");
+  const rawUser = fs.readFileSync(USER_ID_FILE_PATH, "utf-8");
   const parsed = JSON.parse(raw);
+  const parsedUser = JSON.parse(rawUser);
+
+  userIdMappingCache = parsedUser;
   preferenceCache = parsed;
 }
 
 function updateFile() {
   fs.writeFileSync(FILE_PATH, JSON.stringify(preferenceCache));
+  fs.writeFileSync(USER_ID_FILE_PATH, JSON.stringify(userIdMappingCache));
 }
 
 function shuffleArray(arr: string[]) {

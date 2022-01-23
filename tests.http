@@ -16,10 +16,15 @@ POST http://localhost:3000/role
 Content-Type: application/json
 
 {
-  "user": "baadep",
-  "roles": ["1", "fill", "fill", "fill", "3"]
+  "user": "bestplayer2",
+  "roles": ["1", "fill", "fill", "fill", "3"],
+  "userId": "<@52534543>"
 }
 
+
+###
+
+GET http://localhost:3000/id/bestplayer2
 
 ###
 
